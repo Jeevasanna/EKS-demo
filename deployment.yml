@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: angular-app
-        image: darshan626/new-repo:latest
+        image: jeevavijayanand/sanna:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8085
