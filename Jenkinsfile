@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    
+    stages{
+       stage('GetCode'){
+            steps{
+                git branch: 'main', credentialsId: '40f7a21f-6ce7-4bc0-b115-4a85ab05b062', url: 'https://github.com/Patilgit/demo.git'
+            }
+         }        
+       stage('Build'){
+            steps{
+                sh 'mvn clean install'
+            }
+        }
+        
+        stage('SonarQube analysis') {
+            steps{
+                withSonarQubeEnv('sonar') { 
+                 sh "mvn clean package sonar:sonar"
+                }
+            }
+       }
+       stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+                // in manage jenkins > configure systems > sonarqube servers > Url should not end with / it must be http//ip:9000
+              }
+            }
+          }
+          stage('Docker Build and Push') {
+      steps {
+      	withCredentials([usernamePassword(credentialsId: 'demo', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+        	sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPassword}"
+            sh 'chmod 777 automate.sh'
+            sh './automate.sh'
+        }
+      }
+           }
+             stage ("kubernetes deployment") {
+                steps{
+                  sh 'kubectl apply -f deployment_demo.yml'
+                }
+    }
+         }
+            
+    }
